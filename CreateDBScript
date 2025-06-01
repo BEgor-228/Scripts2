@@ -1,0 +1,403 @@
+/*==============================================================*/
+/* DBMS name:      PostgreSQL 9.x                               */
+/* Created on:     22.05.2025 22:46:19                          */
+/*==============================================================*/
+
+
+drop index Administrator_PK;
+
+drop table Administrator;
+
+drop index Hall_PK;
+
+drop table Hall;
+
+drop index Compose_FK;
+
+drop index "Consists of_FK";
+
+drop index List_PK;
+
+drop table List;
+
+drop index Manages_FK;
+
+drop index Manager_PK;
+
+drop table Manager;
+
+drop index TitleIndex;
+
+drop index DataIndex;
+
+drop index GenreIndex;
+
+drop index Edits_FK;
+
+drop index Occurs_FK;
+
+drop index Performance_PK;
+
+drop table Performance;
+
+drop index Includes_FK;
+
+drop index Place_PK;
+
+drop table Place;
+
+drop index Changes_FK;
+
+drop index Repertoire_PK;
+
+drop table Repertoire;
+
+drop index PurchaseDateIndex;
+
+drop index On_FK;
+
+drop index Contains_FK;
+
+drop index Reservation_FK;
+
+drop index Ticket_PK;
+
+drop table Ticket;
+
+drop index FullnameIndex;
+
+drop index Viewer_PK;
+
+drop table Viewer;
+
+/*==============================================================*/
+/* Table: Administrator                                         */
+/*==============================================================*/
+create table Administrator (
+   Administrator_password VARCHAR(10)          not null,
+   Administrator_mail   VARCHAR(40)          not null,
+   Administrator_fullname VARCHAR(40)          not null,
+   Administrator_ID     SERIAL               not null,
+   constraint PK_ADMINISTRATOR primary key (Administrator_ID)
+);
+
+/*==============================================================*/
+/* Index: Administrator_PK                                      */
+/*==============================================================*/
+create unique index Administrator_PK on Administrator (
+Administrator_ID
+);
+
+/*==============================================================*/
+/* Table: Hall                                                  */
+/*==============================================================*/
+create table Hall (
+   Hall_size            VARCHAR(15)          not null,
+   Hall_capacity        INT4                 not null,
+   Hall_ID              SERIAL               not null,
+   constraint PK_HALL primary key (Hall_ID)
+);
+
+/*==============================================================*/
+/* Index: Hall_PK                                               */
+/*==============================================================*/
+create unique index Hall_PK on Hall (
+Hall_ID
+);
+
+/*==============================================================*/
+/* Table: List                                                  */
+/*==============================================================*/
+create table List (
+   Performance_ID       INT4                 not null,
+   Repertoire_ID        INT4                 not null,
+   List_ID              SERIAL               not null,
+   Title                VARCHAR(30)          not null,
+   constraint PK_LIST primary key (Performance_ID, Repertoire_ID, List_ID)
+);
+
+/*==============================================================*/
+/* Index: List_PK                                               */
+/*==============================================================*/
+create unique index List_PK on List (
+Performance_ID,
+Repertoire_ID,
+List_ID
+);
+
+/*==============================================================*/
+/* Index: "Consists of_FK"                                      */
+/*==============================================================*/
+create  index "Consists of_FK" on List (
+Repertoire_ID
+);
+
+/*==============================================================*/
+/* Index: Compose_FK                                            */
+/*==============================================================*/
+create  index Compose_FK on List (
+Performance_ID
+);
+
+/*==============================================================*/
+/* Table: Manager                                               */
+/*==============================================================*/
+create table Manager (
+   Manager_password     VARCHAR(10)          not null,
+   Manager_mail         VARCHAR(40)          not null,
+   Manager_fullname     VARCHAR(40)          not null,
+   Manager_ID           SERIAL               not null,
+   Administrator_ID     INT4                 not null,
+   constraint PK_MANAGER primary key (Manager_ID)
+);
+
+/*==============================================================*/
+/* Index: Manager_PK                                            */
+/*==============================================================*/
+create unique index Manager_PK on Manager (
+Manager_ID
+);
+
+/*==============================================================*/
+/* Index: Manages_FK                                            */
+/*==============================================================*/
+create  index Manages_FK on Manager (
+Administrator_ID
+);
+
+/*==============================================================*/
+/* Table: Performance                                           */
+/*==============================================================*/
+create table Performance (
+   Performance_description VARCHAR(300)         null,
+   Performance_castList VARCHAR(300)         null,
+   Performance_duration TIME                 not null,
+   Performance_data     DATE                 not null,
+   Performance_title    VARCHAR(30)          not null,
+   Performance_price    FLOAT8               not null,
+   Performance_ID       SERIAL               not null,
+   Hall_ID              INT4                 not null,
+   Manager_ID           INT4                 not null,
+   Performance_genre    VARCHAR(15)          not null,
+   constraint PK_PERFORMANCE primary key (Performance_ID)
+);
+
+/*==============================================================*/
+/* Index: Performance_PK                                        */
+/*==============================================================*/
+create unique index Performance_PK on Performance (
+Performance_ID
+);
+
+/*==============================================================*/
+/* Index: Occurs_FK                                             */
+/*==============================================================*/
+create  index Occurs_FK on Performance (
+Hall_ID
+);
+
+/*==============================================================*/
+/* Index: Edits_FK                                              */
+/*==============================================================*/
+create  index Edits_FK on Performance (
+Manager_ID
+);
+
+/*==============================================================*/
+/* Index: GenreIndex                                            */
+/*==============================================================*/
+create  index GenreIndex on Performance (
+Performance_genre
+);
+
+/*==============================================================*/
+/* Index: DataIndex                                             */
+/*==============================================================*/
+create  index DataIndex on Performance (
+Performance_data
+);
+
+/*==============================================================*/
+/* Index: TitleIndex                                            */
+/*==============================================================*/
+create  index TitleIndex on Performance (
+Performance_title
+);
+
+/*==============================================================*/
+/* Table: Place                                                 */
+/*==============================================================*/
+create table Place (
+   Hall_ID              INT4                 not null,
+   Place_number         INT4                 not null,
+   Place_level          INT4                 not null,
+   Place_status         VARCHAR(15)          not null,
+   Place_ID             SERIAL               not null,
+   constraint PK_PLACE primary key (Hall_ID, Place_ID)
+);
+
+/*==============================================================*/
+/* Index: Place_PK                                              */
+/*==============================================================*/
+create unique index Place_PK on Place (
+Hall_ID,
+Place_ID
+);
+
+/*==============================================================*/
+/* Index: Includes_FK                                           */
+/*==============================================================*/
+create  index Includes_FK on Place (
+Hall_ID
+);
+
+/*==============================================================*/
+/* Table: Repertoire                                            */
+/*==============================================================*/
+create table Repertoire (
+   Repertoire_title     VARCHAR(30)          not null,
+   Repertoire_size      INT4                 not null,
+   Repertoire_ID        SERIAL               not null,
+   Manager_ID           INT4                 not null,
+   constraint PK_REPERTOIRE primary key (Repertoire_ID)
+);
+
+/*==============================================================*/
+/* Index: Repertoire_PK                                         */
+/*==============================================================*/
+create unique index Repertoire_PK on Repertoire (
+Repertoire_ID
+);
+
+/*==============================================================*/
+/* Index: Changes_FK                                            */
+/*==============================================================*/
+create  index Changes_FK on Repertoire (
+Manager_ID
+);
+
+/*==============================================================*/
+/* Table: Ticket                                                */
+/*==============================================================*/
+create table Ticket (
+   Ticket_purchaseDate  DATE                 not null,
+   Ticket_hallNumber    INT4                 not null,
+   Ticket_ID            SERIAL               not null,
+   Viewer_ID            INT4                 not null,
+   Hall_ID              INT4                 not null,
+   Place_ID             INT4                 not null,
+   Performance_ID       INT4                 not null,
+   constraint PK_TICKET primary key (Ticket_ID)
+);
+
+/*==============================================================*/
+/* Index: Ticket_PK                                             */
+/*==============================================================*/
+create unique index Ticket_PK on Ticket (
+Ticket_ID
+);
+
+/*==============================================================*/
+/* Index: Reservation_FK                                        */
+/*==============================================================*/
+create  index Reservation_FK on Ticket (
+Viewer_ID
+);
+
+/*==============================================================*/
+/* Index: Contains_FK                                           */
+/*==============================================================*/
+create  index Contains_FK on Ticket (
+Hall_ID,
+Place_ID
+);
+
+/*==============================================================*/
+/* Index: On_FK                                                 */
+/*==============================================================*/
+create  index On_FK on Ticket (
+Performance_ID
+);
+
+/*==============================================================*/
+/* Index: PurchaseDateIndex                                     */
+/*==============================================================*/
+create  index PurchaseDateIndex on Ticket (
+Ticket_purchaseDate
+);
+
+/*==============================================================*/
+/* Table: Viewer                                                */
+/*==============================================================*/
+create table Viewer (
+   Viewer_password      VARCHAR(10)          not null,
+   Viewer_mail          VARCHAR(40)          not null,
+   Viewer_fullname      VARCHAR(40)          not null,
+   Viewer_ID            SERIAL               not null,
+   constraint PK_VIEWER primary key (Viewer_ID)
+);
+
+/*==============================================================*/
+/* Index: Viewer_PK                                             */
+/*==============================================================*/
+create unique index Viewer_PK on Viewer (
+Viewer_ID
+);
+
+/*==============================================================*/
+/* Index: FullnameIndex                                         */
+/*==============================================================*/
+create  index FullnameIndex on Viewer (
+Viewer_fullname
+);
+
+alter table List
+   add constraint FK_LIST_COMPOSE_PERFORMA foreign key (Performance_ID)
+      references Performance (Performance_ID)
+      on delete restrict on update restrict;
+
+alter table List
+   add constraint "FK_LIST_CONSISTS _REPERTOI" foreign key (Repertoire_ID)
+      references Repertoire (Repertoire_ID)
+      on delete restrict on update restrict;
+
+alter table Manager
+   add constraint FK_MANAGER_MANAGES_ADMINIST foreign key (Administrator_ID)
+      references Administrator (Administrator_ID)
+      on delete restrict on update restrict;
+
+alter table Performance
+   add constraint FK_PERFORMA_EDITS_MANAGER foreign key (Manager_ID)
+      references Manager (Manager_ID)
+      on delete restrict on update restrict;
+
+alter table Performance
+   add constraint FK_PERFORMA_OCCURS_HALL foreign key (Hall_ID)
+      references Hall (Hall_ID)
+      on delete restrict on update restrict;
+
+alter table Place
+   add constraint FK_PLACE_INCLUDES_HALL foreign key (Hall_ID)
+      references Hall (Hall_ID)
+      on delete restrict on update restrict;
+
+alter table Repertoire
+   add constraint FK_REPERTOI_CHANGES_MANAGER foreign key (Manager_ID)
+      references Manager (Manager_ID)
+      on delete restrict on update restrict;
+
+alter table Ticket
+   add constraint FK_TICKET_CONTAINS_PLACE foreign key (Hall_ID, Place_ID)
+      references Place (Hall_ID, Place_ID)
+      on delete restrict on update restrict;
+
+alter table Ticket
+   add constraint FK_TICKET_ON_PERFORMA foreign key (Performance_ID)
+      references Performance (Performance_ID)
+      on delete restrict on update restrict;
+
+alter table Ticket
+   add constraint FK_TICKET_RESERVATI_VIEWER foreign key (Viewer_ID)
+      references Viewer (Viewer_ID)
+      on delete restrict on update restrict;
+
