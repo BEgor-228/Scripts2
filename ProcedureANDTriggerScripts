@@ -1,0 +1,154 @@
+CREATE OR REPLACE PROCEDURE add_ticket(
+    p_viewer_id INT,
+    p_performance_id INT,
+    p_hall_id INT,
+    p_place_number INT,
+    p_price INT,
+    OUT p_ticket_code VARCHAR(10),
+    OUT p_success BOOLEAN,
+    OUT p_message TEXT
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_place_id INT;
+    v_existing_ticket INT;
+    v_characters CONSTANT TEXT := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    v_max_attempts CONSTANT INT := 10;
+    v_attempt INT := 0;
+    v_code_exists INT;
+BEGIN
+    SELECT place_id INTO v_place_id
+    FROM place
+    WHERE hall_id = p_hall_id AND place_number = p_place_number;
+
+    IF v_place_id IS NULL THEN
+        p_success := FALSE;
+        p_message := 'Место не найдено.';
+        RETURN;
+    END IF;
+
+    SELECT COUNT(*) INTO v_existing_ticket
+    FROM ticket
+    WHERE performance_id = p_performance_id AND place_id = v_place_id;
+
+    IF v_existing_ticket > 0 THEN
+        p_success := FALSE;
+        p_message := 'Место уже занято.';
+        RETURN;
+    END IF;
+
+    LOOP
+        p_ticket_code := '';
+        FOR i IN 1..10 LOOP
+            p_ticket_code := p_ticket_code || substr(v_characters, (random() * length(v_characters))::INT + 1, 1);
+        END LOOP;
+
+        SELECT COUNT(*) INTO v_code_exists
+        FROM ticket
+        WHERE ticket_code = p_ticket_code;
+
+        v_attempt := v_attempt + 1;
+        EXIT WHEN v_code_exists = 0 OR v_attempt >= v_max_attempts;
+    END LOOP;
+
+    IF v_attempt >= v_max_attempts THEN
+        p_success := FALSE;
+        p_message := 'Не удалось сгенерировать уникальный код билета.';
+        RETURN;
+    END IF;
+
+    INSERT INTO ticket (
+        viewer_id,
+        performance_id,
+        hall_id,
+        place_id,
+        price,
+        ticket_purchase_date,
+        ticket_code
+    )
+    VALUES (
+        p_viewer_id,
+        p_performance_id,
+        p_hall_id,
+        v_place_id,
+        p_price,
+        CURRENT_DATE,
+        p_ticket_code
+    );
+
+    p_success := TRUE;
+    p_message := 'Билет успешно куплен.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_success := FALSE;
+        p_message := 'Ошибка: ' || SQLERRM;
+END;
+$$;
+
+
+
+CREATE OR REPLACE PROCEDURE delete_command(
+    p_command_id INT,
+    OUT p_success BOOLEAN,
+    OUT p_message TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM command WHERE command_id = p_command_id) THEN
+        p_success := FALSE;
+        p_message := 'Указание не найдено.';
+        RETURN;
+    END IF;
+
+    DELETE FROM command WHERE command_id = p_command_id;
+
+    p_success := TRUE;
+    p_message := 'Указание успешно удалено.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_success := FALSE;
+        p_message := 'Ошибка: ' || SQLERRM;
+END;
+$$;
+
+
+
+
+CREATE TABLE IF NOT EXISTS repertoire_errors (
+    error_id SERIAL PRIMARY KEY,
+    repertoire_id INT,
+    error_message TEXT,
+    error_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE OR REPLACE FUNCTION check_repertoire_size()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_current_count INT;
+    v_max_size INT;
+BEGIN
+    SELECT COUNT(*) INTO v_current_count
+    FROM list
+    WHERE repertoire_id = NEW.repertoire_id;
+
+    SELECT repertoire_size INTO v_max_size
+    FROM repertoire
+    WHERE repertoire_id = NEW.repertoire_id;
+
+    IF v_current_count >= v_max_size THEN
+        -- Логирование ошибки
+        INSERT INTO repertoire_errors (repertoire_id, error_message)
+        VALUES (NEW.repertoire_id, 'Превышено максимальное количество спектаклей (' || v_max_size || ') в репертуаре.');
+        RAISE EXCEPTION 'Превышено максимальное количество спектаклей в репертуаре: % из %', v_current_count, v_max_size;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_repertoire_size_trigger
+BEFORE INSERT ON list
+FOR EACH ROW
+EXECUTE FUNCTION check_repertoire_size();
